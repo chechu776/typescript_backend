@@ -1,69 +1,53 @@
 import { Request, Response } from "express";
+import Task, { ITask } from "../models/tasks.js";
 
-let tasks: { id: number; title: string; completed: boolean }[] = [];
-let idCounter = 1;
-
-export const getTasks = (req: Request, res: Response) => {
-    if(tasks.length === 0) {
-        res.status(200).json({ message: "No tasks available" });
-        return;
-    }
-    res.json(tasks);
+export const getTasks = async (req: Request, res: Response) => {
+    const tasks = await Task.find();
+    if(tasks.length === 0) return res.status(200).json({ message: "No tasks available" });
+    return res.json(tasks);
 };
 
-export const getTaskById = (req: Request, res: Response) => {
+export const getTaskById = async (req: Request, res: Response) => {
     const { id } = req.params;
-    const task = tasks.find(t => t.id === Number(id));
-    if (!task) {
-        res.status(404).json({ message: "Task not found" });
-        return;
-    }
-    res.json(task);
+    const task = await Task.findById(id);
+    if(!task) return res.status(404).json({ message: "Task not found" });
+    return res.json(task);
 };
 
-export const addTask = (req: Request, res: Response):void => {
-  const { title } = req.body;
-  if (!title) {
-    res.status(400).json({ message: "Title is required" });
-    return;
-  }
+export const addTask = async (req: Request, res: Response) => {
+    const { title } = req.body;
+    if(!title) return res.status(400).json({ message: "Title is required" });
 
-  const newTask = { id: idCounter++, title, completed: false };
-  tasks.push(newTask);
-  res.status(201).json(newTask);
+    const newTask = new Task({ title });
+    await newTask.save();
+    return res.status(201).json(newTask);
 };
 
-export const updateTask = (req: Request, res: Response):void => {
-  const { id } = req.params;
-  const { title, completed } = req.body;
+export const updateTask = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { title, completed } = req.body;
 
-  const task = tasks.find(t => t.id === Number(id));
-  if (!task) {
-    res.status(404).json({ message: "Task not found" });
-    return;
-  } 
+    const task = await Task.findById(id);
+    if(!task) return res.status(404).json({ message: "Task not found" });
 
-  if (title !== undefined) task.title = title;
-  if (completed !== undefined) task.completed = completed;
+    if(title !== undefined) task.title = title;
+    if(completed !== undefined) task.completed = completed;
 
-  res.json(task);
+    await task.save();
+    return res.json(task);
 };
 
-export const deleteTask = (req: Request, res: Response) => {
-  const { id } = req.params;
-  tasks = tasks.filter(t => t.id !== Number(id));
-  if(!tasks){
-    res.status(404).json({ message: "Task not found" });
-    return;
-  }
-  res.json({ message: "Task deleted" });
+export const deleteTask = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const task = await Task.findByIdAndDelete(id);
+    if(!task) return res.status(404).json({ message: "Task not found" });
+    return res.json({ message: "Task deleted" });
 };
 
-export const deleteAllTasks = (req: Request, res: Response) => {
-    if(tasks.length === 0) {
-        res.status(200).json({ message: "No tasks to delete" });
-        return;
-    }
-    tasks = [];
-    res.json({ message: "All tasks deleted" });
-}
+export const deleteAllTasks = async (req: Request, res: Response) => {
+    const tasks = await Task.find();
+    if(tasks.length === 0) return res.status(200).json({ message: "No tasks to delete" });
+
+    await Task.deleteMany({});
+    return res.json({ message: "All tasks deleted" });
+};
