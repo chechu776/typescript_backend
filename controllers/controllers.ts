@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import Task, { ITask } from "../models/tasks.js";
+import Task from "../models/tasks.js";
 
 export const getTasks = async (req: Request, res: Response) => {
     const tasks = await Task.find();
